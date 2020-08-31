@@ -27,8 +27,8 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-// sessionName is the key used to access the session store.
-var sessionName = "_gothic_session"
+// SessionName is the key used to access the session store.
+var SessionName = "_gothic_session"
 
 // Store can/should be set by applications using gothic. The default is a cookie store.
 var Store sessions.Store
@@ -155,7 +155,8 @@ as either "provider" or ":provider".
 See https://github.com/adixity/goth/examples/main.go to see this in action.
 */
 var CompleteUserAuth = func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
-	defer Logout(res, req)
+	defer LogoutProvider(res,req)
+
 	if !keySet && defaultStore == Store {
 		fmt.Println("goth/gothic: no SESSION_SECRET environment variable is set. The default cookie store is not available and any calls will fail. Ignore this warning if you are using a different store.")
 	}
@@ -237,12 +238,32 @@ func validateState(req *http.Request, sess goth.Session) error {
 
 // Logout invalidates a user session.
 func Logout(res http.ResponseWriter, req *http.Request) error {
-	session, err := Store.Get(req, sessionName)
+	session, err := Store.Get(req, SessionName)
 	if err != nil {
 		return err
 	}
 	session.Options.MaxAge = -1
 	session.Values = make(map[interface{}]interface{})
+	err = session.Save(req, res)
+	if err != nil {
+		return errors.New("Could not delete user session ")
+	}
+	return nil
+}
+
+// LogoutProvider invalidates a user session, only specified provider.
+func LogoutProvider(res http.ResponseWriter, req *http.Request) error {
+	providerName, err := GetProviderName(req)
+	if err != nil {
+		return Logout(res, req)
+	}
+
+	session, err := Store.Get(req, SessionName)
+	if err != nil {
+		return err
+	}
+	session.Options.MaxAge = -1
+	session.Values[providerName] = struct{}{}
 	err = session.Save(req, res)
 	if err != nil {
 		return errors.New("Could not delete user session ")
@@ -286,7 +307,7 @@ func getProviderName(req *http.Request) (string, error) {
 
 	// As a fallback, loop over the used providers, if we already have a valid session for any provider (ie. user has already begun authentication with a provider), then return that provider name
 	providers := goth.GetProviders()
-	session, _ := Store.Get(req, sessionName)
+	session, _ := Store.Get(req, SessionName)
 	for _, provider := range providers {
 		p := provider.Name()
 		value := session.Values[p]
@@ -306,7 +327,7 @@ func GetContextWithProvider(req *http.Request, provider string) *http.Request {
 
 // StoreInSession stores a specified key/value pair in the session.
 func StoreInSession(key string, value string, req *http.Request, res http.ResponseWriter) error {
-	session, _ := Store.New(req, sessionName)
+	session, _ := Store.Get(req, SessionName)
 
 	if err := updateSessionValue(session, key, value); err != nil {
 		return err
@@ -318,7 +339,7 @@ func StoreInSession(key string, value string, req *http.Request, res http.Respon
 // GetFromSession retrieves a previously-stored value from the session.
 // If no value has previously been stored at the specified key, it will return an error.
 func GetFromSession(key string, req *http.Request) (string, error) {
-	session, _ := Store.Get(req, sessionName)
+	session, _ := Store.Get(req, SessionName)
 	value, err := getSessionValue(session, key)
 	if err != nil {
 		return "", errors.New("could not find a matching session for this request")
@@ -364,9 +385,5 @@ func updateSessionValue(session *sessions.Session, key, value string) error {
 }
 
 func SetSessionName(name string) {
-	sessionName = name
-}
-
-func GetSessionName() string {
-	return sessionName
+	SessionName = name
 }
