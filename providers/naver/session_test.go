@@ -3,8 +3,8 @@ package naver_test
 import (
 	"testing"
 
-	"github.com/markbates/goth"
-	"github.com/markbates/goth/providers/naver"
+	"github.com/adixity/goth"
+	"github.com/adixity/goth/providers/naver"
 	"github.com/stretchr/testify/assert"
 )
 

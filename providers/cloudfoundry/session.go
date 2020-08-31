@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/markbates/goth"
+	"github.com/adixity/goth"
 	"golang.org/x/oauth2"
 )
 
