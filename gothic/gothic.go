@@ -27,8 +27,8 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-// SessionName is the key used to access the session store.
-const SessionName = "_gothic_session"
+// sessionName is the key used to access the session store.
+var sessionName = "_gothic_session"
 
 // Store can/should be set by applications using gothic. The default is a cookie store.
 var Store sessions.Store
@@ -237,7 +237,7 @@ func validateState(req *http.Request, sess goth.Session) error {
 
 // Logout invalidates a user session.
 func Logout(res http.ResponseWriter, req *http.Request) error {
-	session, err := Store.Get(req, SessionName)
+	session, err := Store.Get(req, sessionName)
 	if err != nil {
 		return err
 	}
@@ -286,7 +286,7 @@ func getProviderName(req *http.Request) (string, error) {
 
 	// As a fallback, loop over the used providers, if we already have a valid session for any provider (ie. user has already begun authentication with a provider), then return that provider name
 	providers := goth.GetProviders()
-	session, _ := Store.Get(req, SessionName)
+	session, _ := Store.Get(req, sessionName)
 	for _, provider := range providers {
 		p := provider.Name()
 		value := session.Values[p]
@@ -306,7 +306,7 @@ func GetContextWithProvider(req *http.Request, provider string) *http.Request {
 
 // StoreInSession stores a specified key/value pair in the session.
 func StoreInSession(key string, value string, req *http.Request, res http.ResponseWriter) error {
-	session, _ := Store.New(req, SessionName)
+	session, _ := Store.New(req, sessionName)
 
 	if err := updateSessionValue(session, key, value); err != nil {
 		return err
@@ -318,7 +318,7 @@ func StoreInSession(key string, value string, req *http.Request, res http.Respon
 // GetFromSession retrieves a previously-stored value from the session.
 // If no value has previously been stored at the specified key, it will return an error.
 func GetFromSession(key string, req *http.Request) (string, error) {
-	session, _ := Store.Get(req, SessionName)
+	session, _ := Store.Get(req, sessionName)
 	value, err := getSessionValue(session, key)
 	if err != nil {
 		return "", errors.New("could not find a matching session for this request")
@@ -361,4 +361,12 @@ func updateSessionValue(session *sessions.Session, key, value string) error {
 
 	session.Values[key] = b.String()
 	return nil
+}
+
+func SetSessionName(name string) {
+	sessionName = name
+}
+
+func GetSessionName() string {
+	return sessionName
 }
