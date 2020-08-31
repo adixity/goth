@@ -262,7 +262,6 @@ func LogoutProvider(res http.ResponseWriter, req *http.Request) error {
 	if err != nil {
 		return err
 	}
-	session.Options.MaxAge = -1
 	session.Values[providerName] = struct{}{}
 	err = session.Save(req, res)
 	if err != nil {
